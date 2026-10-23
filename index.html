@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1324">
+<link rel="manifest" href="manifest.json">
+<title>نقشه دروس کامپیوتر</title>
+<style>
+:root{--bg:#0f1324;--card:#1b2142;--green:#35c26a;--white:#ffffff;--red:#ff4d5e;--muted:#8d97c4}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:#fff;font-family:"Vazirmatn","Noto Sans Arabic",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:20;background:#0f1324ee;backdrop-filter:blur(6px);padding:10px 12px 8px;border-bottom:1px solid #26305e}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:var(--card);border-radius:12px;padding:7px 10px}
+.stat b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.stat span{font-size:17px;font-weight:700;direction:rtl}
+.bar{height:5px;border-radius:3px;background:#2a3263;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);transition:width .3s}
+.legend{display:flex;gap:12px;align-items:center;font-size:12px;margin-top:8px;color:#cfd5f2;flex-wrap:wrap}
+.legend em{display:inline-block;width:14px;height:10px;border-radius:3px;border:3px solid;margin-inline-end:4px;vertical-align:middle}
+.tools{margin-inline-start:auto;display:flex;gap:6px}
+.tools button{background:var(--card);color:#fff;border:1px solid #333c70;border-radius:8px;min-width:34px;height:30px;font-size:16px}
+h2{font-size:15px;margin:18px 14px 8px;color:#cfd5f2}
+#view{height:68vh;overflow:auto;direction:ltr;touch-action:pan-x pan-y;border-bottom:1px solid #26305e}
+#wrap{position:relative}
+#plane{position:absolute;left:0;top:0;transform-origin:0 0}
+svg{position:absolute;left:0;top:0;pointer-events:none}
+.node{position:absolute;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;direction:rtl;
+ background:var(--card);border:4px solid;border-radius:13px;padding:2px 6px;font-size:13px;line-height:1.35;cursor:pointer;user-select:none;transition:border-color .2s,box-shadow .2s,opacity .2s}
+.node small{color:var(--muted);font-size:10.5px}
+.node.passed{border-color:var(--green);box-shadow:0 0 12px #35c26a66}
+.node.open{border-color:var(--white)}
+.node.locked{border-color:var(--red);opacity:.88}
+.node.locked .t{color:#d8b4ba}
+#gen{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px 80px}
+#gen .node{position:relative;height:60px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#2a3263;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;text-align:center;z-index:50;direction:rtl}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="stats">
+    <div class="stat"><b>دروس چارت</b><span id="s1"></span><div class="bar"><i id="b1"></i></div></div>
+    <div class="stat"><b>دروس عمومی</b><span id="s2"></span><div class="bar"><i id="b2"></i></div></div>
+  </div>
+  <div class="legend">
+    <span><em style="border-color:var(--green)"></em>پاس شده</span>
+    <span><em style="border-color:#fff"></em>قابل برداشتن</span>
+    <span><em style="border-color:var(--red)"></em>قفل</span>
+    <div class="tools"><button id="zo">−</button><button id="zi">+</button><button id="rs" title="پاک کردن همه" style="font-size:13px;padding:0 8px">ریست</button></div>
+  </div>
+</header>
+<div id="view"><div id="wrap"><div id="plane"><svg id="edges"></svg></div></div></div>
+<h2>دروس عمومی (خارج از چارت)</h2>
+<div id="gen"></div>
+<div id="toast"></div>
+<script>
+const DATA={"courses": [{"id": 1, "name": "ریاضی عمومی ۱", "u": 3, "pre": [], "co": [], "x": 1024, "y": 912, "g": "chart"}, {"id": 2, "name": "فیزیک ۱", "u": 3, "pre": [], "co": [], "x": 1024, "y": 335, "g": "chart"}, {"id": 3, "name": "مبانی کامپیوتر و برنامه‌سازی", "u": 3, "pre": [], "co": [], "x": 1024, "y": 813, "g": "chart"}, {"id": 4, "name": "زبان انگلیسی", "u": 3, "pre": [], "co": [], "x": 1024, "y": 172, "g": "chart"}, {"id": 5, "name": "درس عمومی (۱)", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 6, "name": "آشنایی با صنعت کامپیوتر", "u": 1, "pre": [], "co": [], "g": "gen"}, {"id": 7, "name": "کارگاه کامپیوتر", "u": 1, "pre": [], "co": [], "x": 1024, "y": 244, "g": "chart"}, {"id": 8, "name": "ریاضی عمومی ۲", "u": 3, "pre": [1], "co": [], "x": 790, "y": 464, "g": "chart"}, {"id": 9, "name": "فیزیک ۲", "u": 3, "pre": [2], "co": [], "x": 790, "y": 335, "g": "chart"}, {"id": 10, "name": "ریاضیات گسسته", "u": 3, "pre": [], "co": [], "x": 1024, "y": 1020, "g": "chart"}, {"id": 11, "name": "برنامه‌سازی پیشرفته", "u": 3, "pre": [3], "co": [], "x": 790, "y": 813, "g": "chart"}, {"id": 12, "name": "مدارهای منطقی", "u": 3, "pre": [], "co": [], "x": 1024, "y": 608, "g": "chart"}, {"id": 13, "name": "تربیت بدنی", "u": 1, "pre": [], "co": [], "x": 1024, "y": 28, "g": "chart"}, {"id": 14, "name": "کارگاه عمومی", "u": 1, "pre": [], "co": [], "g": "gen"}, {"id": 15, "name": "داده‌ساختارها و الگوریتم‌ها", "u": 3, "pre": [10], "co": [11], "x": 790, "y": 1020, "g": "chart"}, {"id": 16, "name": "معماری کامپیوتر", "u": 3, "pre": [12], "co": [], "x": 790, "y": 644, "g": "chart"}, {"id": 17, "name": "زبان تخصصی کامپیوتر", "u": 2, "pre": [4, 7], "co": [], "x": 790, "y": 197, "g": "chart"}, {"id": 18, "name": "آز فیزیک ۲", "u": 1, "pre": [9], "co": [], "x": 556, "y": 320, "g": "chart"}, {"id": 19, "name": "آز مدارهای منطقی", "u": 1, "pre": [12], "co": [], "x": 790, "y": 536, "g": "chart"}, {"id": 20, "name": "معادلات دیفرانسیل", "u": 3, "pre": [], "co": [8], "x": 1024, "y": 436, "g": "chart"}, {"id": 21, "name": "زبان فارسی", "u": 3, "pre": [], "co": [], "g": "gen"}, {"id": 22, "name": "ورزش ۱", "u": 1, "pre": [], "co": [13], "x": 1024, "y": 100, "g": "chart"}, {"id": 23, "name": "آمار و احتمال مهندسی", "u": 3, "pre": [1], "co": [], "x": 790, "y": 930, "g": "chart"}, {"id": 24, "name": "مدارهای الکتریکی و الکترونیکی", "u": 3, "pre": [9, 20], "co": [], "x": 556, "y": 392, "g": "chart"}, {"id": 25, "name": "آز معماری کامپیوتر", "u": 1, "pre": [16, 19], "co": [], "x": 556, "y": 536, "g": "chart"}, {"id": 26, "name": "تحلیل و طراحی نرم‌افزار", "u": 3, "pre": [15], "co": [], "x": 556, "y": 1218, "g": "chart"}, {"id": 27, "name": "طراحی الگوریتم‌ها", "u": 3, "pre": [15], "co": [], "x": 556, "y": 1146, "g": "chart"}, {"id": 28, "name": "نظریه زبان‌ها و ماشین‌ها", "u": 3, "pre": [15], "co": [], "x": 556, "y": 1074, "g": "chart"}, {"id": 29, "name": "مهارت‌های نرم شغلی", "u": 2, "pre": [11], "co": [], "x": 556, "y": 786, "g": "chart"}, {"id": 30, "name": "درس عمومی (۱)", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 31, "name": "مهندسی نرم‌افزار", "u": 3, "pre": [26], "co": [], "x": 322, "y": 1182, "g": "chart"}, {"id": 32, "name": "آداب فناوری اطلاعات", "u": 3, "pre": [26], "co": [], "x": 322, "y": 1254, "g": "chart"}, {"id": 33, "name": "آز مدارهای الکتریکی و الکترونیکی", "u": 1, "pre": [24], "co": [], "x": 322, "y": 320, "g": "chart"}, {"id": 34, "name": "سیستم‌های عامل", "u": 3, "pre": [15, 16], "co": [], "x": 556, "y": 858, "g": "chart"}, {"id": 35, "name": "سیگنال و سیستم‌ها", "u": 3, "pre": [24], "co": [], "x": 322, "y": 392, "g": "chart"}, {"id": 36, "name": "جبر خطی", "u": 3, "pre": [8], "co": [], "x": 556, "y": 464, "g": "chart"}, {"id": 37, "name": "درس عمومی (۲)", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 38, "name": "هوش مصنوعی", "u": 3, "pre": [15, 23], "co": [], "x": 556, "y": 930, "g": "chart"}, {"id": 39, "name": "طراحی سیستم‌های دیجیتال", "u": 3, "pre": [], "co": [16], "x": 556, "y": 680, "g": "chart"}, {"id": 40, "name": "داده‌کاوی", "u": 3, "pre": [15, 23], "co": [], "x": 556, "y": 1002, "g": "chart"}, {"id": 41, "name": "آز سیستم‌های عامل", "u": 1, "pre": [34], "co": [], "x": 322, "y": 894, "g": "chart"}, {"id": 42, "name": "شبکه‌های کامپیوتری", "u": 3, "pre": [], "co": [34], "x": 322, "y": 822, "g": "chart"}, {"id": 43, "name": "آزمایشگاه سخت‌افزار", "u": 1, "pre": [25], "co": [], "x": 322, "y": 536, "g": "chart"}, {"id": 44, "name": "روش پژوهش و ارائه", "u": 3, "pre": [17], "co": [], "x": 556, "y": 197, "g": "chart"}, {"id": 45, "name": "درس عمومی (۳)", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 46, "name": "مدیریت پروژه‌های فناوری اطلاعات", "u": 3, "pre": [36], "co": [], "x": 322, "y": 464, "g": "chart"}, {"id": 47, "name": "طراحی کامپایلرها", "u": 3, "pre": [16, 28], "co": [], "x": 322, "y": 1038, "g": "chart"}, {"id": 48, "name": "آز شبکه‌های کامپیوتری", "u": 1, "pre": [42], "co": [], "x": 88, "y": 786, "g": "chart"}, {"id": 49, "name": "طراحی پایگاه داده‌ها", "u": 3, "pre": [15], "co": [], "x": 556, "y": 1290, "g": "chart"}, {"id": 50, "name": "سیستم‌های نهفته و بی‌درنگ", "u": 3, "pre": [16], "co": [], "x": 556, "y": 608, "g": "chart"}, {"id": 51, "name": "انتقال داده‌ها", "u": 3, "pre": [35], "co": [], "x": 88, "y": 356, "g": "chart"}, {"id": 52, "name": "کارآموزی (تابستان)", "u": 2, "pre": [44], "co": [], "x": 322, "y": 150, "g": "chart"}, {"id": 53, "name": "درس عمومی (۴)", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 54, "name": "سیستم‌های چندرسانه‌ای", "u": 3, "pre": [35], "co": [], "x": 88, "y": 428, "g": "chart"}, {"id": 55, "name": "امنیت سیستم‌های کامپیوتری", "u": 3, "pre": [42], "co": [], "x": 88, "y": 858, "g": "chart"}, {"id": 56, "name": "دانش خانواده و جمعیت", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 57, "name": "یک درس عمومی", "u": 2, "pre": [], "co": [], "g": "gen"}, {"id": 58, "name": "پروژه کارشناسی", "u": 3, "pre": [44], "co": [], "x": 322, "y": 222, "g": "chart"}], "w": 1112, "h": 1318, "nw": 176, "nh": 56};
+const KEY="cs_passed_v1";
+const byId={};DATA.courses.forEach(c=>byId[c.id]=c);
+let passed=new Set();
+try{passed=new Set(JSON.parse(localStorage.getItem(KEY)||"[]"))}catch(e){}
+const fa=s=>String(s).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[d]);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify([...passed]))}catch(e){}};
+const open_=c=>c.pre.every(p=>passed.has(p));
+const status=c=>passed.has(c.id)?"passed":open_(c)?"open":"locked";
+// normalise: a passed course must have passed prerequisites
+(function(){let ch=true;while(ch){ch=false;passed.forEach(id=>{if(!open_(byId[id])){passed.delete(id);ch=true}})}})();
+const plane=document.getElementById("plane"),svg=document.getElementById("edges"),view=document.getElementById("view"),wrap=document.getElementById("wrap");
+const NW=DATA.nw,NH=DATA.nh,PAD=20;
+plane.style.width=(DATA.w+PAD*2)+"px";plane.style.height=(DATA.h+PAD*2)+"px";
+svg.setAttribute("width",DATA.w+PAD*2);svg.setAttribute("height",DATA.h+PAD*2);
+const els={};
+function mk(c,parent,abs){
+  const d=document.createElement("div");d.className="node";
+  d.innerHTML='<div class="t">'+c.name+'</div><small>'+fa(c.id)+' · '+fa(c.u)+' واحد</small>';
+  if(abs){d.style.width=NW+"px";d.style.height=NH+"px";d.style.left=(c.x-NW/2+PAD)+"px";d.style.top=(c.y-NH/2+PAD)+"px"}
+  d.onclick=()=>tap(c);parent.appendChild(d);els[c.id]=d;
+}
+DATA.courses.filter(c=>c.g==="chart").forEach(c=>mk(c,plane,true));
+DATA.courses.filter(c=>c.g==="gen").forEach(c=>mk(c,document.getElementById("gen"),false));
+// edges
+const edgeEls=[];
+function addEdge(a,b,dash){
+  const A=byId[a],B=byId[b];if(A.x==null||B.x==null)return;
+  const x1=A.x-NW/2+PAD,y1=A.y+PAD,x2=B.x+NW/2+PAD,y2=B.y+PAD,m=(x1-x2)/2;
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",`M${x1},${y1} C${x1-m},${y1} ${x2+m},${y2} ${x2},${y2}`);
+  p.setAttribute("fill","none");p.setAttribute("stroke-width","2");
+  if(dash)p.setAttribute("stroke-dasharray","6 5");
+  svg.appendChild(p);edgeEls.push({p,a,dash});
+}
+const defs=document.createElementNS("http://www.w3.org/2000/svg","defs");svg.appendChild(defs);
+DATA.courses.forEach(c=>{c.pre.forEach(p=>addEdge(p,c.id,false));(c.co||[]).forEach(p=>addEdge(p,c.id,true))});
+function tap(c){
+  const st=status(c);
+  if(st==="locked"){
+    const miss=c.pre.filter(p=>!passed.has(p)).map(p=>byId[p].name);
+    toast("قفل است — ابتدا پاس کن: "+miss.join("، "));return;
+  }
+  if(st==="open"){passed.add(c.id);}
+  else{
+    const dep=[];const q=[c.id];
+    while(q.length){const x=q.pop();DATA.courses.forEach(k=>{if(k.pre.includes(x)&&passed.has(k.id)&&!dep.includes(k.id)){dep.push(k.id);q.push(k.id)}})}
+    if(dep.length&&!confirm("با نشده کردن این درس، "+fa(dep.length)+" درس وابسته هم نشده می‌شوند. ادامه می‌دهی؟"))return;
+    passed.delete(c.id);dep.forEach(i=>passed.delete(i));
+  }
+  save();render();
+}
+function render(){
+  DATA.courses.forEach(c=>{els[c.id].classList.remove("passed","open","locked");els[c.id].classList.add(status(c))});
+  edgeEls.forEach(e=>{e.p.setAttribute("stroke",e.dash?"#ff6b6b99":passed.has(e.a)?"#35c26a":"#4a5589")});
+  let a=0,at=0,b=0,bt=0;
+  DATA.courses.forEach(c=>{const g=c.g==="chart";if(g)at+=c.u;else bt+=c.u;if(passed.has(c.id)){if(g)a+=c.u;else b+=c.u}});
+  s1.textContent=fa(a)+" / "+fa(at);s2.textContent=fa(b)+" / "+fa(bt);
+  b1.style.width=(100*a/at)+"%";b2.style.width=(100*b/bt)+"%";
+}
+let sc=.75;
+function setScale(s,cx,cy){
+  const old=sc;sc=Math.max(.3,Math.min(1.6,s));
+  const W=(DATA.w+PAD*2),H=(DATA.h+PAD*2);
+  plane.style.transform="scale("+sc+")";wrap.style.width=W*sc+"px";wrap.style.height=H*sc+"px";
+  if(cx!=null){view.scrollLeft=(view.scrollLeft+cx)*sc/old-cx;view.scrollTop=(view.scrollTop+cy)*sc/old-cy}
+}
+zi.onclick=()=>setScale(sc*1.2,view.clientWidth/2,view.clientHeight/2);
+zo.onclick=()=>setScale(sc/1.2,view.clientWidth/2,view.clientHeight/2);
+rs.onclick=()=>{if(confirm("همهٔ درس‌های پاس‌شده پاک شوند؟")){passed.clear();save();render()}};
+let d0=0,s0=1;
+const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+view.addEventListener("touchstart",e=>{if(e.touches.length===2){d0=dist(e.touches);s0=sc}},{passive:true});
+view.addEventListener("touchmove",e=>{if(e.touches.length===2&&d0){e.preventDefault();const r=view.getBoundingClientRect();
+  setScale(s0*dist(e.touches)/d0,(e.touches[0].clientX+e.touches[1].clientX)/2-r.left,(e.touches[0].clientY+e.touches[1].clientY)/2-r.top)}},{passive:false});
+view.addEventListener("touchend",e=>{if(e.touches.length<2)d0=0});
+let tm;function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");clearTimeout(tm);tm=setTimeout(()=>e.classList.remove("show"),2600)}
+setScale(sc);render();
+view.scrollLeft=view.scrollWidth; // start at the right side (first courses)
+if("serviceWorker"in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
